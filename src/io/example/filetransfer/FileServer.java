@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 class Fetcher implements Runnable {
+
   public static final int BUFSIZE = 1024*1024;
   private File file;
   private ByteBuf buf;
@@ -49,6 +50,7 @@ class Fetcher implements Runnable {
   private AtomicBoolean done;
   private AtomicBoolean suspended;
   private byte[] b;
+
   public Fetcher(ChannelHandlerContext ctx, File file, ByteBuf buf) {
     this.file = file;
     this.done = new AtomicBoolean(false);
