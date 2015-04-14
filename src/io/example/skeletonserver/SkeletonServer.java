@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SkeletonServer {
   private int port;
   private static final String sourceDir = "/tmp/server/";
-  private AtomicInteger token = new AtomicInteger();
 
   public static String getSourceDir() {
     return sourceDir;
@@ -61,7 +60,7 @@ public class SkeletonServer {
               ch.pipeline()
                   .addLast("codec", new HttpServerCodec())
                   .addLast("chunker", new ChunkedWriteHandler())
-                  .addLast("delegator", new RequestDelegator(token.incrementAndGet()));
+                  .addLast("delegator", new RequestDelegator());
             }
           });
 

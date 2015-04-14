@@ -36,39 +36,43 @@ public class HttpUploadClientHandler extends SimpleChannelInboundHandler<HttpObj
     if (msg instanceof HttpResponse) {
       HttpResponse response = (HttpResponse) msg;
 
-      //System.err.println("STATUS: " + response.getStatus());
-      //System.err.println("VERSION: " + response.getProtocolVersion());
+      //printMsg("STATUS: " + response.getStatus());
+      //printMsg("VERSION: " + response.getProtocolVersion());
 
       if (!response.headers().isEmpty()) {
         for (CharSequence name : response.headers().names()) {
           for (CharSequence value : response.headers().getAll(name)) {
-            //System.err.println("HEADER: " + name + " = " + value);
+            //printMsg("HEADER: " + name + " = " + value);
           }
         }
       }
 
       if (response.getStatus().code() == 200 && HttpHeaders.isTransferEncodingChunked(response)) {
         readingChunks = true;
-        //System.err.println("CHUNKED CONTENT {");
+        //printMsg("CHUNKED CONTENT {");
       } else {
-        //System.err.println("CONTENT {");
+        //printMsg("CONTENT {");
       }
     }
     if (msg instanceof HttpContent) {
       HttpContent chunk = (HttpContent) msg;
-      //System.err.println(chunk.content().toString(CharsetUtil.UTF_8));
+      printMsg(chunk.content().toString(CharsetUtil.UTF_8));
 
       if (chunk instanceof LastHttpContent) {
         if (readingChunks) {
-          //System.err.println("} END OF CHUNKED CONTENT");
+          //printMsg("} END OF CHUNKED CONTENT");
         } else {
-          //System.err.println("} END OF CONTENT");
+          //printMsg("} END OF CONTENT");
         }
         readingChunks = false;
       } else {
-        //System.err.println(chunk.content().toString(CharsetUtil.UTF_8));
+        //printMsg(chunk.content().toString(CharsetUtil.UTF_8));
       }
     }
+  }
+
+  private void printMsg(String msg){
+    System.err.println(msg);
   }
 
   @Override

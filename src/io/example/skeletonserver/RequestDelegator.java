@@ -3,6 +3,8 @@ package io.example.skeletonserver;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -23,19 +25,12 @@ import static io.netty.handler.codec.http.HttpVersion.*;
  */
 public class RequestDelegator extends SimpleChannelInboundHandler<HttpObject> {
   private RequestHandler handler;
-  private int token;
-  private AtomicInteger readNo = new AtomicInteger();
-
-  public RequestDelegator(int token){
-    this.token = token;
-  }
 
   private Boolean vetRequest(ChannelHandlerContext ctx, HttpRequest request){
     if (!request.getDecoderResult().isSuccess()) {
         sendError(ctx, HttpResponseStatus.BAD_REQUEST);
         return false;
     }
-
     return true;
   }
 
@@ -48,6 +43,7 @@ public class RequestDelegator extends SimpleChannelInboundHandler<HttpObject> {
       }
 
       QueryStringDecoder query = new QueryStringDecoder(request.getUri());
+      System.out.println("Received query: " + request.getUri());
 
       if(query.parameters().get("action") != null){
         String action = query.parameters().get("action").get(0);
@@ -56,32 +52,19 @@ public class RequestDelegator extends SimpleChannelInboundHandler<HttpObject> {
         } else if (action.startsWith("echo")) {
           handler = new EchoRequestHandler(ctx);
         } else if (action.startsWith("form")){
-          handler = new UploadRequestHandler(ctx, token);
-          ctx.channel().config().setAutoRead(false);
+          handler = new UploadRequestHandler(ctx);
         } else {
           sendError(ctx, HttpResponseStatus.BAD_REQUEST);
           return;
         }
       } else {
-        return; // nothing to do for now
+        return;
       }
     }
 
     if(handler != null){
-      long startTime = System.nanoTime();
       handler.handleRead(msg);
-      if(readNo.incrementAndGet() % 10000 == 0){
-        System.out.println("Read time elapsed is " + (System.nanoTime() - startTime) + " for " + token);
-      }
     }
-  }
-
-  public static void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
-    FullHttpResponse response = new DefaultFullHttpResponse(
-        HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
-    response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
-
-    ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
   }
 
   @Override
@@ -96,9 +79,15 @@ public class RequestDelegator extends SimpleChannelInboundHandler<HttpObject> {
     }
   }
 
+
+  private void changeRecvBufferAllocator(ChannelHandlerContext ctx){
+    FixedRecvByteBufAllocator allocator = new FixedRecvByteBufAllocator(16384);
+    ctx.channel().config().setRecvByteBufAllocator(allocator);
+  }
+
   @Override
   public void channelActive(ChannelHandlerContext ctx){
-
+    //changeRecvBufferAllocator(ctx);
   }
 
   @Override
@@ -106,5 +95,17 @@ public class RequestDelegator extends SimpleChannelInboundHandler<HttpObject> {
     if(handler != null){
       handler.handleChannelInactive();
     }
+  }
+
+  @Override
+  public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+  }
+
+  public static void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
+    FullHttpResponse response = new DefaultFullHttpResponse(
+        HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
+    response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+
+    ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
   }
 }

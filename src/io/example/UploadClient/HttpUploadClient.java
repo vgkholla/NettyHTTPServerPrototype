@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 public final class HttpUploadClient implements Runnable {
 
   static final String BASE_URL = System.getProperty("baseUrl", "http://127.0.0.1:8088/");
-  static final String FILE = System.getProperty("file", "/tmp/server/i");
+  static final String FILE = System.getProperty("file", "/tmp/server/l");
 
   private int tracker;
 
@@ -67,6 +67,7 @@ public final class HttpUploadClient implements Runnable {
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
     System.out.println("Enter number of threads: ");
     int num_threads = Integer.parseInt(in.readLine());
+    //int num_threads = 1;
 
     ExecutorService executor = Executors.newFixedThreadPool(num_threads);
 
@@ -226,6 +227,7 @@ public final class HttpUploadClient implements Runnable {
     // send request
     List<Entry<String, String>> entries = headers.entries();
     channel.writeAndFlush(request);
+    System.out.println("Sent formget");
 
     // Wait for the server to close the connection.
     channel.closeFuture().sync();
@@ -282,6 +284,7 @@ public final class HttpUploadClient implements Runnable {
       // either do it through ChunkedWriteHandler
       channel.write(bodyRequestEncoder);
     }
+    System.out.println("Sent formpost");
     channel.flush();
 
     // Do not clear here since we will reuse the InterfaceHttpData on the next request
@@ -333,6 +336,7 @@ public final class HttpUploadClient implements Runnable {
     if (bodyRequestEncoder.isChunked()) {
       channel.write(bodyRequestEncoder);
     }
+    System.out.println("Sent formpostmultipart");
     channel.flush();
 
     // Now no more use of file representation (and list of HttpData)
